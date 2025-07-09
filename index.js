@@ -137,7 +137,7 @@ function selectScore() {
     if (score == 0) {
         return;
     }
-    document.getElementById("selectScore").innerHTML = choose.length + " blocks " + score + " points";
+    document.getElementById("selectScore").innerHTML = choose.length + " stars " + score + " points";
     document.getElementById("selectScore").style.transition = null;
     document.getElementById("selectScore").style.opacity = 1;
     setTimeout(function () {
@@ -161,6 +161,28 @@ function mouseOver(obj) {
     flicker(choose);
     selectScore();
 }
+
+function adjustPopStarSize() {
+    const wrapper = document.getElementById('game-wrapper');
+    const popStar = document.getElementById('pop_star');
+
+    const safeTop = parseInt(getComputedStyle(document.documentElement).getPropertyValue('padding-top')) || 0;
+    const safeBottom = parseInt(getComputedStyle(document.documentElement).getPropertyValue('padding-bottom')) || 0;
+
+    const totalHeight = wrapper.clientHeight;
+    const scoreBars = 100; // 2 score bars (50px each)
+
+    const maxSize = Math.min(
+        wrapper.clientWidth,
+        totalHeight - scoreBars - safeTop - safeBottom
+    );
+
+    popStar.style.width = maxSize + 'px';
+    popStar.style.height = maxSize + 'px';
+}
+
+window.addEventListener('load', adjustPopStarSize);
+window.addEventListener('resize', adjustPopStarSize);
 
 function init() {
     table = document.getElementById("pop_star");
