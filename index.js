@@ -137,7 +137,7 @@ function selectScore() {
     if (score == 0) {
         return;
     }
-    document.getElementById("selectScore").innerHTML = choose.length + "块 " + score + "分";
+    document.getElementById("selectScore").innerHTML = choose.length + " blocks " + score + " points";
     document.getElementById("selectScore").style.transition = null;
     document.getElementById("selectScore").style.opacity = 1;
     setTimeout(function () {
@@ -164,53 +164,70 @@ function mouseOver(obj) {
 
 function init() {
     table = document.getElementById("pop_star");
-    document.getElementById("targetScore").innerHTML = "目标分数：" + targetScore;
-    for (var i = 0 ; i < boardWidth ; i ++) {
+
+    const screenHeight = window.innerHeight;
+    const screenWidth = window.innerWidth;
+    const topBarsHeight = 100;
+    const usableHeight = screenHeight - topBarsHeight;
+
+    const boardSize = Math.min(screenWidth, usableHeight);
+
+    table.style.width = boardSize + "px";
+    table.style.height = boardSize + "px";
+
+    squareWidth = boardSize / boardWidth;
+
+    document.getElementById("targetScore").innerHTML = "Target Score：" + targetScore;
+    document.getElementById("nowScore").innerHTML = "Current Score：" + totalScore;
+
+    table.innerHTML = "";
+    squareSet = [];
+
+    for (var i = 0; i < boardWidth; i++) {
         squareSet[i] = new Array();
-        for (var j = 0 ; j < boardWidth ; j ++) {
+        for (var j = 0; j < boardWidth; j++) {
             var square = createSquare(Math.floor(Math.random() * 5), i, j);
             square.onmouseover = function () {
                 mouseOver(this);
             };
             square.onclick = function () {
-                if (!flag || choose.length == 0) {
+                if (!flag || choose.length === 0) {
                     return;
                 }
                 flag = false;
                 tempSquare = null;
                 var score = 0;
-                for (var i = 0 ; i < choose.length ; i ++) {
-                    score += baseScore + i * stepScore;
+                for (var k = 0; k < choose.length; k++) {
+                    score += baseScore + k * stepScore;
                 }
                 totalScore += score;
-                document.getElementById("nowScore").innerHTML = "当前分数：" + totalScore;
-                for (var i = 0 ; i < choose.length ; i ++) {//对每个选中的方块进行移除操作
-                    (function(i){
+                document.getElementById("nowScore").innerHTML = "Current Score：" + totalScore;
+                for (var k = 0; k < choose.length; k++) {
+                    (function (index) {
                         setTimeout(function () {
-                            squareSet[choose[i].row][choose[i].col] = null;
-                            table.removeChild(choose[i]);
-                        }, i * 100);
-                    })(i);
+                            squareSet[choose[index].row][choose[index].col] = null;
+                            table.removeChild(choose[index]);
+                        }, index * 100);
+                    })(k);
                 }
                 setTimeout(function () {
                     move();
                     setTimeout(function () {
-                        var is = isFinish();
-                        if (is) {
+                        var finished = isFinish();
+                        if (finished) {
                             if (totalScore > targetScore) {
-                                alert("恭喜获胜");
+                                alert("Congratulations on winning");
                             } else {
-                                alert("游戏失败");
+                                alert("Nice try, you lose");
                             }
                         } else {
                             choose = [];
                             flag = true;
                             mouseOver(tempSquare);
-
                         }
                     }, 300 + choose.length * 150);
                 }, choose.length * 100);
-            }
+            };
             squareSet[i][j] = square;
             table.appendChild(square);
         }
@@ -221,3 +238,5 @@ function init() {
 window.onload = function () {
     init();
 }
+
+window.onresize = init;
