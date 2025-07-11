@@ -10,6 +10,72 @@ var baseScore = 5;//基础分数
 var stepScore = 10;//一次每多消除一个额外增加的分数
 var totalScore = 0;//当前总分数
 var targetScore = 2000;//目标分数
+var currentLevel = 1;
+var levelScoreMap = [1500, 3000, 6000, 9000, 12000, 15000, 18000, 21000, 24000, 27000];
+
+function getTargetScore() {
+    if (currentLevel <= levelScoreMap.length) {
+        return levelScoreMap[currentLevel - 1];
+    } else {
+        let lastDefined = levelScoreMap[levelScoreMap.length - 1];
+        let extraLevel = currentLevel - levelScoreMap.length;
+        return Math.floor(lastDefined + extraLevel * 6000 + extraLevel ** 2 * 500);
+    }
+}
+
+function showLevelClearedBanner() {
+    const banner = document.getElementById("levelClearBanner");
+    banner.style.opacity = 1;
+    banner.style.transform = "translate(-50%, -50%) scale(1)";
+
+    setTimeout(() => {
+        banner.style.top = "10px";
+        banner.style.left = "auto";
+        banner.style.right = "10px";
+        banner.style.transform = "scale(0.6)";
+    }, 2000);
+}
+
+function createBreakEffect(square) {
+    const numParticles = 6;
+    const container = document.getElementById("pop_star");
+    const squareRect = square.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+
+    const left = squareRect.left - containerRect.left;
+    const bottom = containerRect.bottom - squareRect.bottom;
+
+    for (let i = 0; i < numParticles; i++) {
+        const frag = document.createElement("div");
+        frag.className = "break-piece";
+        const size = squareWidth / 4;
+        frag.style.width = size + "px";
+        frag.style.height = size + "px";
+        frag.style.position = "absolute";
+        frag.style.left = left + "px";
+        frag.style.bottom = bottom + "px";
+        frag.style.backgroundImage = square.style.backgroundImage;
+        frag.style.backgroundSize = "cover";
+        container.appendChild(frag);
+
+        const angle = Math.random() * 2 * Math.PI;
+        const radius = Math.random() * 30 + 10;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+
+        frag.animate([
+            { transform: "translate(0, 0) scale(1)", opacity: 1 },
+            { transform: `translate(${x}px, ${y}px) scale(0.5)`, opacity: 0 }
+        ], {
+            duration: 400,
+            easing: "ease-out"
+        });
+
+        setTimeout(() => container.removeChild(frag), 400);
+    }
+}
+
+// ******************************************************** //
 
 function isFinish() {
     var flag = true;
@@ -185,6 +251,17 @@ window.addEventListener('load', adjustPopStarSize);
 window.addEventListener('resize', adjustPopStarSize);
 
 function init() {
+    const banner = document.getElementById("levelClearBanner");
+
+    if (banner) {
+        banner.classList.remove("shown");
+        banner.style.opacity = 0;
+        banner.style.top = "40%";
+        banner.style.left = "50%";
+        banner.style.right = "auto";
+        banner.style.transform = "translate(-50%, -50%) scale(1)";
+    }
+
     table = document.getElementById("pop_star");
 
     const screenHeight = window.innerHeight;
@@ -199,8 +276,13 @@ function init() {
 
     squareWidth = boardSize / boardWidth;
 
-    document.getElementById("targetScore").innerHTML = "Target Score：" + targetScore;
+    // document.getElementById("targetScore").innerHTML = "Target Score：" + targetScore;
     document.getElementById("nowScore").innerHTML = "Current Score：" + totalScore;
+
+    // ********************************************* //
+    document.getElementById("targetScore").innerHTML = "Target Score: " + getTargetScore();
+    document.getElementById("levelInfo").innerHTML = "Level: " + currentLevel;
+    // ********************************************* //
 
     table.innerHTML = "";
     squareSet = [];
@@ -218,43 +300,66 @@ function init() {
                 }
                 flag = false;
                 tempSquare = null;
+
                 var score = 0;
                 for (var k = 0; k < choose.length; k++) {
                     score += baseScore + k * stepScore;
                 }
                 totalScore += score;
                 document.getElementById("nowScore").innerHTML = "Current Score：" + totalScore;
+
+                // 🔥 Show banner if user reaches the goal for the first time
+                if (totalScore >= getTargetScore() && !document.getElementById("levelClearBanner").classList.contains("shown")) {
+                    showLevelClearedBanner();
+                    document.getElementById("levelClearBanner").classList.add("shown");
+                }
+
+                // Animate and remove blocks one-by-one
                 for (var k = 0; k < choose.length; k++) {
                     (function (index) {
-                        setTimeout(function () {
-                            squareSet[choose[index].row][choose[index].col] = null;
-                            table.removeChild(choose[index]);
-                        }, index * 100);
+                        const sq = choose[index];
+                        setTimeout(() => {
+                            createBreakEffect(sq);
+                            setTimeout(() => {
+                                squareSet[sq.row][sq.col] = null;
+                                table.removeChild(sq);
+
+                                if (index === choose.length - 1) {
+                                    setTimeout(function () {
+                                        move(); // 💡 Drop immediately after pop
+
+                                        setTimeout(function () {
+                                            var finished = isFinish();
+                                            if (finished) {
+                                                if (totalScore >= getTargetScore()) {
+                                                    alert("Level " + currentLevel + " cleared!");
+                                                    currentLevel++;
+                                                    setTimeout(init, 1000);
+                                                } else {
+                                                    alert("Game over. You reached " + totalScore + " but needed " + getTargetScore() + ".");
+                                                    currentLevel = 1;
+                                                    totalScore = 0;
+                                                    setTimeout(init, 1000);
+                                                }
+                                            } else {
+                                                choose = [];
+                                                flag = true;
+                                                mouseOver(tempSquare);
+                                            }
+                                        }, 300);
+                                    }, 200);
+                                }
+                            }, 100); // remove DOM after effect
+                        }, index * 150); // stagger each pop
                     })(k);
                 }
-                setTimeout(function () {
-                    move();
-                    setTimeout(function () {
-                        var finished = isFinish();
-                        if (finished) {
-                            if (totalScore > targetScore) {
-                                alert("Congratulations on winning");
-                            } else {
-                                alert("Nice try, you lose");
-                            }
-                        } else {
-                            choose = [];
-                            flag = true;
-                            mouseOver(tempSquare);
-                        }
-                    }, 300 + choose.length * 150);
-                }, choose.length * 100);
             };
             squareSet[i][j] = square;
             table.appendChild(square);
         }
     }
     refresh();
+    flag = true;
 }
 
 window.onload = function () {
