@@ -9,7 +9,7 @@ html, body {
   height: 100%;
   overflow: hidden;
   touch-action: manipulation;
-  background: url('./pic/background.png') no-repeat center center;
+  background: url('./pic/background.svg') no-repeat center center;
   background-size: cover;
   font-family: sans-serif;
 }
@@ -75,7 +75,7 @@ html, body {
   height: 100%;
   overflow: hidden;
   touch-action: manipulation;
-  background: url('./pic/background.png') no-repeat center center;
+  background: url('./pic/background.svg') no-repeat center center;
   background-size: cover;
   font-family: sans-serif;
 }
