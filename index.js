@@ -10,6 +10,7 @@ var baseScore = 5;//基础分数
 var stepScore = 10;//一次每多消除一个额外增加的分数
 var totalScore = 0;//当前总分数
 var targetScore = 2000;//目标分数
+let alertActive = false;
 
 function isFinish() {
     var flag = true;
@@ -162,6 +163,67 @@ function mouseOver(obj) {
     selectScore();
 }
 
+function showAlert(message) {
+    if (alertActive) return;
+    
+    alertActive = true;
+
+    const overlay = document.createElement("div");
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 9998;
+    `;
+
+    const alertBox = document.createElement("div");
+    alertBox.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      z-index: 9999;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      text-align: center;
+      min-width: 200px;
+    `;
+
+    alertBox.innerHTML = `
+      <p style="margin-bottom: 20px; font-size: 20px;">${message}</p>
+      <button id="alert-ok-btn" style="
+        padding: 8px 16px;
+        background: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      ">OK</button>
+    `;
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(alertBox);
+
+    const okBtn = document.getElementById("alert-ok-btn");
+    okBtn?.addEventListener("click", () => {
+      alertBox.style.display = 'none';
+      overlay.style.display = 'none';
+      
+      setTimeout(() => {
+        document.body.removeChild(alertBox);
+        document.body.removeChild(overlay);
+        alertActive = false;
+        totalScore = 0;
+        init();
+      }, 10);
+    }, { once: true });
+};
+
 function adjustPopStarSize() {
     const wrapper = document.getElementById('game-wrapper');
     const popStar = document.getElementById('pop_star');
@@ -238,9 +300,9 @@ function init() {
                         var finished = isFinish();
                         if (finished) {
                             if (totalScore > targetScore) {
-                                alert("Congratulations on winning");
+                                showAlert("You Win!");
                             } else {
-                                alert("Nice try, you lose");
+                                showAlert("Game Over!");
                             }
                         } else {
                             choose = [];
