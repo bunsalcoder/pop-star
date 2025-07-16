@@ -26,7 +26,8 @@ function getTargetScore() {
 function showLevelClearedBanner() {
     const banner = document.getElementById("levelClearBanner");
     banner.style.opacity = 1;
-    banner.style.transform = "translate(-50%, -50%) scale(1)";
+    banner.style.transform = "translate(0%, -50%) scale(1)";
+    // banner.style.fontSize = "18px"
 
     setTimeout(() => {
         banner.style.top = "10px";
@@ -76,6 +77,7 @@ function createBreakEffect(square) {
 }
 
 // ******************************************************** //
+let alertActive = false;
 
 function isFinish() {
     var flag = true;
@@ -228,6 +230,118 @@ function mouseOver(obj) {
     selectScore();
 }
 
+function gameOverAlert(message) {
+    if (alertActive) return;
+    
+    alertActive = true;
+
+    const overlay = document.createElement("div");
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 9998;
+    `;
+
+    const alertBox = document.createElement("div");
+    alertBox.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      z-index: 9999;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      text-align: center;
+      min-width: 200px;
+    `;
+
+    alertBox.innerHTML = `
+      <p style="margin-bottom: 20px; font-size: 20px;">${message}</p>
+      <button id="alert-ok-btn" style="
+        padding: 8px 16px;
+        background: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      ">OK</button>
+    `;
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(alertBox);
+
+    const okBtn = document.getElementById("alert-ok-btn");
+    okBtn?.addEventListener("click", () => {
+      alertBox.style.display = 'none';
+      overlay.style.display = 'none';
+      
+      setTimeout(() => {
+        document.body.removeChild(alertBox);
+        document.body.removeChild(overlay);
+        alertActive = false;
+        totalScore = 0;
+        init();
+      }, 10);
+    }, { once: true });
+};
+
+function showAlert(message) {
+  if (alertActive) return;
+  alertActive = true;
+
+  const overlay = document.createElement("div");
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9998;
+    background: rgba(0, 0, 0, 0.2);
+  `;
+
+  const alertBox = document.createElement("div");
+  alertBox.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px 30px;
+    border-radius: 10px;
+    z-index: 9999;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    text-align: center;
+    font-size: 20px;
+    min-width: 200px;
+  `;
+
+  alertBox.textContent = message;
+
+  document.body.appendChild(overlay);
+  document.body.appendChild(alertBox);
+
+  setTimeout(() => {
+    alertBox.style.opacity = '0';
+    overlay.style.opacity = '0';
+    alertBox.style.transition = 'opacity 0.3s ease';
+    overlay.style.transition = 'opacity 0.3s ease';
+
+    setTimeout(() => {
+      document.body.removeChild(alertBox);
+      document.body.removeChild(overlay);
+      alertActive = false;
+    }, 300); // match the fade-out duration
+  }, 2000); // display for 2.5 seconds
+}
+
+
 function adjustPopStarSize() {
     const wrapper = document.getElementById('game-wrapper');
     const popStar = document.getElementById('pop_star');
@@ -332,14 +446,14 @@ function init() {
                                             var finished = isFinish();
                                             if (finished) {
                                                 if (totalScore >= getTargetScore()) {
-                                                    alert("Level " + currentLevel + " cleared!");
+                                                    showAlert("Level " + currentLevel + " cleared!");
                                                     currentLevel++;
                                                     setTimeout(init, 1000);
                                                 } else {
-                                                    alert("Game over. You reached " + totalScore + " but needed " + getTargetScore() + ".");
+                                                    gameOverAlert("Game over!");
                                                     currentLevel = 1;
                                                     totalScore = 0;
-                                                    setTimeout(init, 1000);
+                                                    // setTimeout(init, 1000);
                                                 }
                                             } else {
                                                 choose = [];
