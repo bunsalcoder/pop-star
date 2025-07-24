@@ -181,4 +181,14 @@ export class GameAPI {
       throw error;
     }
   }
+
+  // Clear game data (game over)
+  async clearGameData() {
+    try {
+      const response = await apiClient.post('/progress/popStar/clear');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
 } 

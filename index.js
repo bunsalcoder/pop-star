@@ -1,5 +1,19 @@
 import { GameAPI } from './api.js';
 
+// vConsole for local/test environments
+if (
+  import.meta.env.MODE === 'development' ||
+  import.meta.env.MODE === 'test' ||
+  import.meta.env.VITE_ENV === 'local' ||
+  import.meta.env.VITE_ENV === 'test'
+) {
+  import('vconsole').then(({ default: VConsole }) => {
+    // eslint-disable-next-line no-new
+    new VConsole();
+    console.log('vConsole enabled');
+  });
+}
+
 const gameAPI = new GameAPI(); // Move to top-level scope
 
 // Global variables for game state
@@ -40,29 +54,41 @@ async function initializeGameWithData(starLayout = null, forceNewLevel = false) 
       
       console.log('Processed game data:', data);
       
-      // Update game state with API data
-      if (data.score !== undefined) {
+      // Update game state with API data - only if data exists and has properties
+      if (data && data.score !== undefined) {
         totalScore = data.score;
         console.log('Updated totalScore to:', totalScore);
+      } else {
+        // If no score data, set to 0 for new game
+        totalScore = 0;
+        console.log('No score data found, setting totalScore to 0');
       }
-      if (data.level !== undefined) {
+      
+      if (data && data.level !== undefined) {
         currentLevel = data.level;
         console.log('Updated currentLevel to:', currentLevel);
+      } else {
+        // If no level data, set to 1 for new game
+        currentLevel = 1;
+        console.log('No level data found, setting currentLevel to 1');
       }
       
       // Check if level has been cleared
-      if (data.levelCleared !== undefined) {
+      if (data && data.levelCleared !== undefined) {
         levelCleared = data.levelCleared;
         console.log('Updated levelCleared to:', levelCleared);
       } else {
         // If no levelCleared data, assume level is not cleared
         levelCleared = false;
+        console.log('No levelCleared data found, setting levelCleared to false');
       }
       
       // Use the star layout from API
-      if (data.starLayout) {
+      if (data && data.starLayout) {
         starLayout = data.starLayout;
         console.log('Using starLayout from API:', starLayout);
+      } else {
+        console.log('No starLayout data found, will generate random layout');
       }
     } catch (err) {
       console.error('Failed to load game data:', err);
@@ -121,11 +147,11 @@ async function initializeGameWithData(starLayout = null, forceNewLevel = false) 
   table.innerHTML = "";
   squareSet = [];
 
-  if (starLayout) {
+  if (starLayout && Array.isArray(starLayout) && starLayout.length === boardWidth && starLayout.every(row => Array.isArray(row) && row.length === boardWidth)) {
     for (var i = 0; i < boardWidth; i++) {
       squareSet[i] = new Array();
       for (var j = 0; j < boardWidth; j++) {
-        if (starLayout[i][j] !== null) {
+        if (starLayout[i] && starLayout[i][j] !== null && starLayout[i][j] !== undefined) {
           var square = createSquare(starLayout[i][j], i, j);
           square.onmouseover = function () {
             mouseOver(this);
@@ -240,6 +266,7 @@ async function initializeGameWithData(starLayout = null, forceNewLevel = false) 
       }
     }
   } else {
+    // Fallback: generate random layout
     for (var i = 0; i < boardWidth; i++) {
       squareSet[i] = new Array();
       for (var j = 0; j < boardWidth; j++) {
@@ -401,6 +428,14 @@ async function resetGame() {
   totalScore = 0;
   currentLevel = 1;
   levelCleared = false;
+  
+  // Clear any existing game state
+  choose = [];
+  flag = true;
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
   
   // Initialize with fresh random layout
   await initializeGameWithData(null, true);
@@ -648,36 +683,45 @@ let alertActive = false;
 function isFinish() {
     // Check if there are any stars left on the board
     let totalStars = 0;
-    let linkedGroups = 0;
+    let hasLinkedGroups = false;
     
-    for (var i = 0 ; i < squareSet.length ; i ++) {
-        for (var j = 0 ; j < squareSet[i].length ; j ++) {
-            if (squareSet[i][j] != null) {
+    // Create a visited array to avoid checking the same stars multiple times
+    let visited = [];
+    for (var i = 0; i < squareSet.length; i++) {
+        visited[i] = [];
+        for (var j = 0; j < squareSet[i].length; j++) {
+            visited[i][j] = false;
+        }
+    }
+    
+    for (var i = 0; i < squareSet.length; i++) {
+        for (var j = 0; j < squareSet[i].length; j++) {
+            if (squareSet[i][j] != null && !visited[i][j]) {
                 totalStars++;
-                // There are still stars on the board, check if any can be linked
+                // Check if this star can be linked with others
                 var temp = [];
-                checkLinked(squareSet[i][j], temp);
+                checkLinkedWithVisited(squareSet[i][j], temp, visited);
                 if (temp.length > 1) {
-                    linkedGroups++;
+                    hasLinkedGroups = true;
                     console.log('Found linked group of', temp.length, 'stars at position', i, j);
                 }
             }
         }
     }
     
-    console.log('isFinish check - totalStars:', totalStars, 'linkedGroups:', linkedGroups);
+    console.log('isFinish check - totalStars:', totalStars, 'hasLinkedGroups:', hasLinkedGroups, 'board dimensions:', squareSet.length, 'x', squareSet[0]?.length || 0);
     
     if (totalStars === 0) {
         console.log('No stars left on board - game finished');
         return true;
     }
     
-    if (linkedGroups === 0) {
+    if (!hasLinkedGroups) {
         console.log('No linked groups found - game finished');
         return true;
     }
     
-    console.log('Game can continue - found', linkedGroups, 'linked groups');
+    console.log('Game can continue - found linked groups');
     return false;
 }
 
@@ -753,17 +797,44 @@ function checkLinked(square, arr) {
         return;
     }
     arr.push(square);
+    // Use actual array length instead of boardWidth for column bounds
+    const actualCols = squareSet[square.row].length;
+    
     if (square.col > 0 && squareSet[square.row][square.col - 1] && squareSet[square.row][square.col - 1].num == square.num && arr.indexOf(squareSet[square.row][square.col - 1]) == -1) {
         checkLinked(squareSet[square.row][square.col - 1], arr);
     }
-    if (square.col < boardWidth - 1 && squareSet[square.row][square.col + 1] && squareSet[square.row][square.col + 1].num == square.num && arr.indexOf(squareSet[square.row][square.col + 1]) == -1) {
+    if (square.col < actualCols - 1 && squareSet[square.row][square.col + 1] && squareSet[square.row][square.col + 1].num == square.num && arr.indexOf(squareSet[square.row][square.col + 1]) == -1) {
         checkLinked(squareSet[square.row][square.col + 1], arr);
     }
-    if (square.row < boardWidth - 1 && squareSet[square.row + 1][square.col] && squareSet[square.row + 1][square.col].num == square.num && arr.indexOf(squareSet[square.row + 1][square.col]) == -1) {
+    if (square.row < boardWidth - 1 && squareSet[square.row + 1] && squareSet[square.row + 1][square.col] && squareSet[square.row + 1][square.col].num == square.num && arr.indexOf(squareSet[square.row + 1][square.col]) == -1) {
         checkLinked(squareSet[square.row + 1][square.col], arr);
     }
-    if (square.row > 0 && squareSet[square.row - 1][square.col] && squareSet[square.row - 1][square.col].num == square.num && arr.indexOf(squareSet[square.row - 1][square.col]) == -1) {
+    if (square.row > 0 && squareSet[square.row - 1] && squareSet[square.row - 1][square.col] && squareSet[square.row - 1][square.col].num == square.num && arr.indexOf(squareSet[square.row - 1][square.col]) == -1) {
         checkLinked(squareSet[square.row - 1][square.col], arr);
+    }
+}
+
+function checkLinkedWithVisited(square, arr, visited) {
+    if (square == null || visited[square.row][square.col]) {
+        return;
+    }
+    arr.push(square);
+    visited[square.row][square.col] = true;
+    
+    // Use actual array length instead of boardWidth for column bounds
+    const actualCols = squareSet[square.row].length;
+    
+    if (square.col > 0 && squareSet[square.row][square.col - 1] && squareSet[square.row][square.col - 1].num == square.num && !visited[square.row][square.col - 1]) {
+        checkLinkedWithVisited(squareSet[square.row][square.col - 1], arr, visited);
+    }
+    if (square.col < actualCols - 1 && squareSet[square.row][square.col + 1] && squareSet[square.row][square.col + 1].num == square.num && !visited[square.row][square.col + 1]) {
+        checkLinkedWithVisited(squareSet[square.row][square.col + 1], arr, visited);
+    }
+    if (square.row < boardWidth - 1 && squareSet[square.row + 1] && squareSet[square.row + 1][square.col] && squareSet[square.row + 1][square.col].num == square.num && !visited[square.row + 1][square.col]) {
+        checkLinkedWithVisited(squareSet[square.row + 1][square.col], arr, visited);
+    }
+    if (square.row > 0 && squareSet[square.row - 1] && squareSet[square.row - 1][square.col] && squareSet[square.row - 1][square.col].num == square.num && !visited[square.row - 1][square.col]) {
+        checkLinkedWithVisited(squareSet[square.row - 1][square.col], arr, visited);
     }
 }
 
@@ -846,6 +917,7 @@ function gameOverAlert(message) {
       width: 100%;
       height: 100%;
       z-index: 9998;
+      background: rgba(0, 0, 0, 0.3);
     `;
 
     const alertBox = document.createElement("div");
@@ -855,43 +927,54 @@ function gameOverAlert(message) {
       left: 50%;
       transform: translate(-50%, -50%);
       background: white;
-      padding: 20px;
+      padding: 30px 40px;
       border-radius: 10px;
       z-index: 9999;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
       text-align: center;
-      min-width: 200px;
+      min-width: 250px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #d32f2f;
     `;
 
-    alertBox.innerHTML = `
-      <p style="margin-bottom: 20px; font-size: 20px;">${message}</p>
-      <button id="alert-ok-btn" style="
-        padding: 8px 16px;
-        background: #4CAF50;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 16px;
-      ">OK</button>
-    `;
+    alertBox.innerHTML = `<p>${message}</p>`;
 
     document.body.appendChild(overlay);
     document.body.appendChild(alertBox);
 
-    const okBtn = document.getElementById("alert-ok-btn");
-    okBtn?.addEventListener("click", () => {
-      alertBox.style.display = 'none';
-      overlay.style.display = 'none';
+    // Auto-restart after 2 seconds
+    setTimeout(async () => {
+      // Fade out effect
+      alertBox.style.transition = 'opacity 0.5s ease';
+      overlay.style.transition = 'opacity 0.5s ease';
+      alertBox.style.opacity = '0';
+      overlay.style.opacity = '0';
       
       setTimeout(async () => {
         document.body.removeChild(alertBox);
         document.body.removeChild(overlay);
         alertActive = false;
-        // Reset game with fresh layout
+        
+        // Clear game data via API
+        try {
+          await gameAPI.clearGameData();
+          console.log('Game data cleared via API');
+        } catch (e) {
+          console.error('Failed to clear game data:', e);
+        }
+        
+        // Reset game with fresh layout and reload data
         await resetGame();
-      }, 10);
-    }, { once: true });
+        
+        // Reload game data to update frontend
+        try {
+          await initializeGameWithData();
+        } catch (e) {
+          console.error('Failed to reload game data:', e);
+        }
+      }, 500);
+    }, 2000);
 };
 
 function showAlert(message) {
