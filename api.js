@@ -45,8 +45,6 @@ export class GameAPI {
             code: code
           });
           
-          console.log('Backend login response:', response.data);
-          
           // Store the token securely
           localStorage.setItem("token", response.data.data.token);
           localStorage.setItem("isMosLoggedIn", true);
@@ -109,13 +107,10 @@ export class GameAPI {
 
     // Call mos.login only once
     try {
-      console.log('Calling mos.login...');
       const mosResponse = await window.mos.login(appKey);
-      console.log('MOS response:', mosResponse);
       
       const code = mosResponse?.code ?? mosResponse?.data?.code;
       if (code) {
-        console.log('Success! Got code:', code);
         return code;
       } else {
         throw new Error('No code in response');
@@ -165,7 +160,6 @@ export class GameAPI {
   async getGameData() {
     try {
       const response = await apiClient.get('/progress/popStar/get');
-      console.log('Game data:', response.data);
       return response.data.data;
     } catch (error) {
       throw error;

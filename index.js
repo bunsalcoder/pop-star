@@ -10,7 +10,6 @@ if (
   import('vconsole').then(({ default: VConsole }) => {
     // eslint-disable-next-line no-new
     new VConsole();
-    console.log('vConsole enabled');
   });
 }
 
@@ -44,7 +43,6 @@ async function initializeGameWithData(starLayout = null, forceNewLevel = false) 
   if (!starLayout && !forceNewLevel) {
     try {
       const response = await gameAPI.getGameData();
-      console.log('Loaded game data response:', response);
       
       // Handle nested response structure
       let data = response;
@@ -52,41 +50,32 @@ async function initializeGameWithData(starLayout = null, forceNewLevel = false) 
         data = response.data.data;
       }
       
-      console.log('Processed game data:', data);
-      
       // Update game state with API data - only if data exists and has properties
       if (data && data.score !== undefined) {
         totalScore = data.score;
-        console.log('Updated totalScore to:', totalScore);
       } else {
         // If no score data, set to 0 for new game
         totalScore = 0;
-        console.log('No score data found, setting totalScore to 0');
       }
       
       if (data && data.level !== undefined) {
         currentLevel = data.level;
-        console.log('Updated currentLevel to:', currentLevel);
       } else {
         // If no level data, set to 1 for new game
         currentLevel = 1;
-        console.log('No level data found, setting currentLevel to 1');
       }
       
       // Check if level has been cleared
       if (data && data.levelCleared !== undefined) {
         levelCleared = data.levelCleared;
-        console.log('Updated levelCleared to:', levelCleared);
       } else {
         // If no levelCleared data, assume level is not cleared
         levelCleared = false;
-        console.log('No levelCleared data found, setting levelCleared to false');
       }
       
       // Use the star layout from API
       if (data && data.starLayout) {
         starLayout = data.starLayout;
-        console.log('Using starLayout from API:', starLayout);
       } else {
         console.log('No starLayout data found, will generate random layout');
       }
@@ -107,10 +96,8 @@ async function initializeGameWithData(starLayout = null, forceNewLevel = false) 
     
     // Show banner if score is above target (regardless of levelCleared flag)
     if (totalScore >= getTargetScore()) {
-      console.log('Score above target - showing banner - totalScore:', totalScore, 'targetScore:', getTargetScore(), 'levelCleared:', levelCleared);
       if (!levelCleared) {
         levelCleared = true;
-        console.log('Setting levelCleared to true');
         // Save the levelCleared state to API
         setTimeout(() => {
           saveGameDataOnLevelComplete();
@@ -141,8 +128,6 @@ async function initializeGameWithData(starLayout = null, forceNewLevel = false) 
   document.getElementById("targetScore").innerHTML = "Target Score: " + getTargetScore();
   document.getElementById("levelInfo").innerHTML = "Level: " + currentLevel;
   // ********************************************* //
-  
-  console.log('Initializing game with - Score:', totalScore, 'Level:', currentLevel, 'LevelCleared:', levelCleared);
 
   table.innerHTML = "";
   squareSet = [];
@@ -214,19 +199,14 @@ async function initializeGameWithData(starLayout = null, forceNewLevel = false) 
                               starLayout: currentStarLayout
                             };
                             saveData.levelCleared = levelCleared;
-                            console.log('Saving game data after pop:', saveData);
                             await gameAPI.saveGameData(saveData);
-                            console.log('Game data saved successfully after pop');
                           } catch (e) {
                             console.error('Failed to save game data after pop:', e);
                           }
 
                           var finished = isFinish();
-                          console.log('Game finished check - finished:', finished, 'totalScore:', totalScore, 'targetScore:', getTargetScore());
                           if (finished) {
-                            console.log('Game is finished, checking score...');
                             if (totalScore >= getTargetScore()) {
-                              console.log('Level completed! Moving to next level');
                               showAlert("Level " + currentLevel + " cleared!");
                               currentLevel++;
                               // Save game data when level is completed
@@ -236,7 +216,6 @@ async function initializeGameWithData(starLayout = null, forceNewLevel = false) 
                                 await saveNewLevelLayout();
                               }, 1000);
                             } else {
-                              console.log('Game over - score not high enough');
                               gameOverAlert("Game over!");
                               currentLevel = 1;
                               totalScore = 0;
@@ -245,7 +224,6 @@ async function initializeGameWithData(starLayout = null, forceNewLevel = false) 
                               // setTimeout(init, 1000);
                             }
                           } else {
-                            console.log('Game can continue, resetting for next move');
                             choose = [];
                             flag = true;
                             mouseOver(tempSquare);
@@ -332,19 +310,14 @@ async function initializeGameWithData(starLayout = null, forceNewLevel = false) 
                             starLayout: currentStarLayout
                           };
                           saveData.levelCleared = levelCleared;
-                          console.log('Saving game data after pop:', saveData);
                           await gameAPI.saveGameData(saveData);
-                          console.log('Game data saved successfully after pop');
                         } catch (e) {
                           console.error('Failed to save game data after pop:', e);
                         }
 
                         var finished = isFinish();
-                        console.log('Game finished check - finished:', finished, 'totalScore:', totalScore, 'targetScore:', getTargetScore());
                         if (finished) {
-                          console.log('Game is finished, checking score...');
                           if (totalScore >= getTargetScore()) {
-                            console.log('Level completed! Moving to next level');
                             showAlert("Level " + currentLevel + " cleared!");
                             currentLevel++;
                             // Save game data when level is completed
@@ -354,7 +327,6 @@ async function initializeGameWithData(starLayout = null, forceNewLevel = false) 
                               await saveNewLevelLayout();
                             }, 1000);
                           } else {
-                            console.log('Game over - score not high enough');
                             gameOverAlert("Game over!");
                             currentLevel = 1;
                             totalScore = 0;
@@ -363,7 +335,6 @@ async function initializeGameWithData(starLayout = null, forceNewLevel = false) 
                             // setTimeout(init, 1000);
                           }
                         } else {
-                          console.log('Game can continue, resetting for next move');
                           choose = [];
                           flag = true;
                           mouseOver(tempSquare);
@@ -390,7 +361,6 @@ async function initializeGameWithData(starLayout = null, forceNewLevel = false) 
     
     // Also check if game is finished and should move to next level
     if (isFinish() && totalScore >= getTargetScore() && levelCleared) {
-      console.log('Game is finished and level is cleared - should move to next level');
       // Don't auto-advance here, let user see the banner first
       // The next click will trigger the level completion
     }
@@ -398,7 +368,6 @@ async function initializeGameWithData(starLayout = null, forceNewLevel = false) 
     // If game is finished and score is above target but level not marked as cleared,
     // automatically mark it as cleared and show banner
     if (isFinish() && totalScore >= getTargetScore() && !levelCleared) {
-      console.log('Game is finished with score above target - marking level as cleared');
       levelCleared = true;
       showLevelClearedBanner();
       // Save the cleared state
@@ -424,7 +393,6 @@ function getTargetScore() {
 
 // Function to reset game with fresh layout
 async function resetGame() {
-  console.log('Resetting game with fresh layout');
   totalScore = 0;
   currentLevel = 1;
   levelCleared = false;
@@ -454,7 +422,6 @@ async function resetGame() {
       starLayout: freshStarLayout,
       levelCleared: false
     });
-    console.log('Fresh game layout saved to API');
   } catch (e) {
     console.error('Failed to save fresh game layout:', e);
   }
@@ -484,7 +451,6 @@ async function saveNewLevelLayout() {
       starLayout: newStarLayout,
       levelCleared: false // Reset for new level
     });
-    console.log('New level star layout saved to API');
   } catch (e) {
     console.error('Failed to save new level star layout:', e);
   }
@@ -493,7 +459,6 @@ async function saveNewLevelLayout() {
 // Function to manually advance to next level
 function advanceToNextLevel() {
   if (totalScore >= getTargetScore() && levelCleared) {
-    console.log('Manually advancing to next level');
     showAlert("Level " + currentLevel + " cleared!");
     currentLevel++;
     // Save game data when level is completed
@@ -509,33 +474,26 @@ function advanceToNextLevel() {
 
 // Function to manually check for level completion
 function checkForLevelCompletion() {
-  console.log('Checking for level completion - totalScore:', totalScore, 'targetScore:', getTargetScore(), 'isFinish:', isFinish(), 'levelCleared:', levelCleared);
-  
   if (totalScore >= getTargetScore() && !levelCleared) {
-    console.log('Level completion conditions met - showing banner');
     levelCleared = true;
     showLevelClearedBanner();
     saveGameDataOnLevelComplete();
   } else if (totalScore >= getTargetScore() && levelCleared) {
-    console.log('Score above target and level already cleared - banner should be visible');
     // Ensure banner is visible
     const banner = document.getElementById("levelClearBanner");
     if (banner && banner.style.opacity === "0") {
-      console.log('Re-showing banner for cleared level');
       showLevelClearedBanner();
     }
   }
   
   // Also check if game is finished and should move to next level
   if (isFinish() && totalScore >= getTargetScore() && levelCleared) {
-    console.log('Game is finished and level is cleared - ready for next level');
   }
 }
 
 // Function to check and trigger level completion automatically
 function checkAndTriggerLevelCompletion() {
   if (isFinish() && totalScore >= getTargetScore() && !levelCleared) {
-    console.log('Auto-triggering level completion');
     showLevelClearedBanner();
     levelCleared = true;
     
@@ -546,14 +504,12 @@ function checkAndTriggerLevelCompletion() {
 
 // Function to start a new level with fresh random layout
 function startNewLevel() {
-  console.log('Starting new level with fresh random layout');
   initializeGameWithData(null, true);
 }
 
 // Function to reset level cleared flag for new level
 function resetLevelCleared() {
   levelCleared = false;
-  console.log('Reset levelCleared flag for new level');
 }
 
 // Function to save game data when level is completed
@@ -580,7 +536,6 @@ async function saveGameDataOnLevelComplete() {
             starLayout,
             levelCleared: levelCleared
         });
-        console.log('Game data saved on level completion');
     } catch (e) {
         console.error('Failed to save game data on level completion:', e);
     }
@@ -610,7 +565,6 @@ async function saveGameDataOnGameOver() {
             starLayout,
             levelCleared: levelCleared
         });
-        console.log('Game data saved on game over');
     } catch (e) {
         console.error('Failed to save game data on game over:', e);
     }
@@ -703,25 +657,20 @@ function isFinish() {
                 checkLinkedWithVisited(squareSet[i][j], temp, visited);
                 if (temp.length > 1) {
                     hasLinkedGroups = true;
-                    console.log('Found linked group of', temp.length, 'stars at position', i, j);
                 }
             }
         }
     }
-    
-    console.log('isFinish check - totalStars:', totalStars, 'hasLinkedGroups:', hasLinkedGroups, 'board dimensions:', squareSet.length, 'x', squareSet[0]?.length || 0);
+
     
     if (totalStars === 0) {
-        console.log('No stars left on board - game finished');
         return true;
     }
     
     if (!hasLinkedGroups) {
-        console.log('No linked groups found - game finished');
         return true;
     }
-    
-    console.log('Game can continue - found linked groups');
+
     return false;
 }
 
@@ -959,7 +908,6 @@ function gameOverAlert(message) {
         // Clear game data via API
         try {
           await gameAPI.clearGameData();
-          console.log('Game data cleared via API');
         } catch (e) {
           console.error('Failed to clear game data:', e);
         }
@@ -1055,7 +1003,6 @@ document.addEventListener('DOMContentLoaded', async function() {
   const token = localStorage.getItem("token");
 
   if (typeof mos !== 'undefined') {
-    console.log('MOS is available');
 
     if (token) {
       // Already logged in, fetch game data and initialize
@@ -1063,11 +1010,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     } else {
       // Not logged in, authenticate first
       const appKey = import.meta.env.VITE_APP_KEY;
-      console.log('AppKey:', appKey);
 
       try {
         await gameAPI.authenticate();
-        console.log('Login successful');
         await initializeGameWithData();
       } catch (error) {
         console.error('Login or data load failed:', error);
@@ -1089,12 +1034,10 @@ window.onresize = initializeGameWithData;
 
 // Global function to manually check level completion (can be called from console)
 window.checkLevelCompletion = function() {
-  console.log('Manual level completion check triggered');
   checkForLevelCompletion();
 };
 
 // Global function to manually advance to next level (can be called from console)
 window.advanceLevel = function() {
-  console.log('Manual level advancement triggered');
   advanceToNextLevel();
 };

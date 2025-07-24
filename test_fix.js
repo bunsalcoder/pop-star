@@ -4,21 +4,18 @@
 function showBannerIfLevelCleared() {
   const banner = document.getElementById("levelClearBanner");
   if (banner && levelCleared && totalScore >= getTargetScore()) {
-    console.log('Showing banner for cleared level');
     showLevelClearedBanner();
   }
 }
 
 // Fix 2: Level progression - ensure new levels get fresh random layouts
 function startNewLevel() {
-  console.log('Starting new level with fresh random layout');
   // Force new level initialization without API data
   initializeGameWithData(null, true);
 }
 
 // Fix 3: Update the level completion logic
 function handleLevelCompletion() {
-  console.log('Level completed! Moving to next level');
   showAlert("Level " + currentLevel + " cleared!");
   currentLevel++;
   // Save game data when level is completed
