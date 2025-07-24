@@ -849,7 +849,7 @@ function refresh() {
             squareSet[i][j].style.transition = "left 0.3s, bottom 0.3s";
             squareSet[i][j].style.left = squareSet[i][j].col * squareWidth + "px";
             squareSet[i][j].style.bottom = squareSet[i][j].row * squareWidth + "px";
-            squareSet[i][j].style.backgroundImage = "url('./pic/" + squareSet[i][j].num + ".png')";
+            squareSet[i][j].style.backgroundImage = "url('/pic/" + squareSet[i][j].num + ".png')";
             squareSet[i][j].style.backgroundSize = "cover";
             squareSet[i][j].style.transform = "scale(0.95)";
 
