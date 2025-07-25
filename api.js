@@ -4,9 +4,39 @@ const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
 });
 
+// Response interceptor to handle 401 errors and refresh tokens
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        const gameAPI = new GameAPI();
+        await gameAPI.refreshToken();
+
+        const token = localStorage.getItem("popStarToken");
+        if (token) {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+        }
+        
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        localStorage.removeItem("popStarToken");
+        localStorage.removeItem("isMosLoggedIn");
+        throw refreshError;
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("popStarToken");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -46,7 +76,7 @@ export class GameAPI {
           });
           
           // Store the token securely
-          localStorage.setItem("token", response.data.data.token);
+          localStorage.setItem("popStarToken", response.data.data.token);
           localStorage.setItem("isMosLoggedIn", true);
           
           return response.data;
@@ -62,49 +92,45 @@ export class GameAPI {
     }
   }
 
+  async refreshToken() {
+    const appKey = import.meta.env.VITE_APP_KEY;
+    if (!appKey) {
+      throw new Error('VITE_APP_KEY not found in environment variables');
+    }
+
+    if (
+      typeof window !== "undefined" &&
+      window.mos &&
+      typeof window.mos.login === "function"
+    ) {
+      try {
+        const code = await this.waitForMosCode(appKey, 5, 1000);
+        
+        if (code) {
+          const response = await axios.post("https://mp-test.mos.me/api/games/login/popStar/miniAppLogin", {
+            code: code
+          });
+          
+          // Store the new token
+          localStorage.setItem("popStarToken", response.data.data.token);
+          localStorage.setItem("isMosLoggedIn", true);
+          
+          return response.data;
+        }
+      } catch (e) {
+        console.error('Token refresh failure:', e);
+        throw e;
+      }
+    } else {
+      throw new Error("MOS login is not available for token refresh.");
+    }
+  }
+
   // Wait for MOS code with retries
   async waitForMosCode(appKey, maxRetries = 5, delay = 1000) {
     // Add initial delay to let SDK initialize
     await new Promise(res => setTimeout(res, 500));
-    /*
-    let code = null;
-    while (!code) {
-      try {
-        console.log('Calling mos.login...');
-        console.log({window}) 
-        const mosResponse = await window.mos.login(appKey);
-        console.log('MOS response:', mosResponse);
-        code = ( mosResponse?.code ?? mosResponse?.data?.code ) || null;
-      } catch (e) {
-        console.error('MOS login failed:', e);
-        break
-      }
-    }
-
-    console.log({code});
-    */
     
-    /*
-    try {
-      return await this.retry(async () => {
-        const {code } = await window.mos.login(appKey)
-        if (!code) throw new Error('No code in response');
-        console.log("=======try get code", code);
-        return code;
-      }, maxRetries, 10, 1);
-    } catch (error) {
-      throw error;
-    }
-      */
-    // const sign = await window.mos.getSign()
-    // console.log("===========sign", sign);
-    
-    // const code = await window.mos.login(appKey).then(data => data.code)
-    // console.log("===========code", code);
-        
-    // return code;
-
-
     // Call mos.login only once
     try {
       const mosResponse = await window.mos.login(appKey);
@@ -121,38 +147,19 @@ export class GameAPI {
     }
   }
 
-  // retry(callback, maxRetries = 5, delay = 1000, multiple =1) {
-  //   return new Promise((resolve, reject) => {
-  //     const retry = async () => {
-  //       try {
-  //         const result = await callback();
-  //         resolve(result);
-  //       } catch (e) {
-  //         if (maxRetries > 0) {
-  //           maxRetries--;
-  //           await new Promise(resolve => setTimeout(resolve, delay * multiple));
-  //           return retry();
-  //         }
-  //         reject(e);
-  //       } 
-  //     };
-  //     retry();
-  //   });
-  // }
-
   // Check if user is logged in
   isLoggedIn() {
-    return localStorage.getItem("token") !== null;
+    return localStorage.getItem("popStarToken") !== null;
   }
 
   // Get stored token
   getToken() {
-    return localStorage.getItem("token");
+    return localStorage.getItem("popStarToken");
   }
 
   // Logout
   logout() {
-    localStorage.removeItem("token");
+    localStorage.removeItem("popStarToken");
     localStorage.removeItem("userCode");
   }
 

@@ -1000,7 +1000,7 @@ window.addEventListener('resize', adjustPopStarSize);
 
 // Handle authentication and API data loading
 document.addEventListener('DOMContentLoaded', async function() {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("popStarToken");
 
   if (typeof mos !== 'undefined') {
 
