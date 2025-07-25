@@ -106,7 +106,7 @@ html, body {
 }
 
 #levelInfo {
-  flex: 1;
+  flex: 0 0 auto;
   font-size: 16px;
   color: white;
   border-radius: 10px;
@@ -117,6 +117,16 @@ html, body {
   justify-content: center;
   white-space: nowrap;
   margin-top: 20px;
+  margin-left: 0;
+  align-self: center;
+}
+
+.level-container {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-start;
+  margin-left: 30px;
 }
 
 #score-bar {
@@ -146,4 +156,130 @@ html, body {
 
 #nowScore {
   margin-top: -6px;
+}
+
+/* New Game Button Styles */
+.new-game-btn {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: 6px;
+  margin-left: 8px;
+  width: 20px;
+  height: 20px;
+  align-self: center;
+  margin-top: 17px;
+}
+
+.new-game-btn:hover {
+  transform: scale(1.1) rotate(180deg);
+}
+
+.new-game-btn:active {
+  transform: scale(0.95);
+}
+
+/* Popup Styles */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.popup-overlay.show {
+  display: flex;
+}
+
+.popup-content {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 30px;
+  max-width: 90%;
+  width: 350px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.popup-header h3 {
+  color: white;
+  font-size: 24px;
+  margin-bottom: 15px;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.popup-body p {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 16px;
+  line-height: 1.5;
+  margin-bottom: 25px;
+}
+
+.popup-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.btn-cancel {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-cancel:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-confirm {
+  background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+  color: white;
+  border: 2px solid #ff6b6b;
+}
+
+.btn-confirm:hover {
+  background: linear-gradient(45deg, #ee5a24, #ff6b6b);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }

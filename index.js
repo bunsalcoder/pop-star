@@ -1025,6 +1025,33 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Fallback to default initialization
     await initializeGameWithData();
   }
+
+  // Initialize new game button event listeners
+  const newGameBtn = document.getElementById('newGameBtn');
+  const cancelNewGameBtn = document.getElementById('cancelNewGame');
+  const confirmNewGameBtn = document.getElementById('confirmNewGame');
+  
+  if (newGameBtn) {
+    newGameBtn.addEventListener('click', showNewGamePopup);
+  }
+  
+  if (cancelNewGameBtn) {
+    cancelNewGameBtn.addEventListener('click', hideNewGamePopup);
+  }
+  
+  if (confirmNewGameBtn) {
+    confirmNewGameBtn.addEventListener('click', startNewGame);
+  }
+  
+  // Close popup when clicking outside
+  const popupOverlay = document.getElementById('newGamePopup');
+  if (popupOverlay) {
+    popupOverlay.addEventListener('click', function(e) {
+      if (e.target === popupOverlay) {
+        hideNewGamePopup();
+      }
+    });
+  }
 });
 
 // window.onload is handled by DOMContentLoaded for proper API integration
@@ -1041,3 +1068,47 @@ window.checkLevelCompletion = function() {
 window.advanceLevel = function() {
   advanceToNextLevel();
 };
+
+// New Game Functionality
+function showNewGamePopup() {
+  const popup = document.getElementById('newGamePopup');
+  popup.classList.add('show');
+}
+
+function hideNewGamePopup() {
+  const popup = document.getElementById('newGamePopup');
+  popup.classList.remove('show');
+}
+
+async function startNewGame() {
+  try {
+    // Call the clear API endpoint
+    await gameAPI.clearGameData();
+    
+    // Reset game state to level 1
+    totalScore = 0;
+    currentLevel = 1;
+    levelCleared = false;
+    
+    // Update UI
+    document.getElementById('nowScore').textContent = `Current Score: ${totalScore}`;
+    document.getElementById('levelInfo').textContent = `Level: ${currentLevel}`;
+    document.getElementById('targetScore').textContent = `Target Score: ${getTargetScore()}`;
+    
+    // Call get to fetch fresh data after clear
+    await gameAPI.getGameData();
+    
+    // Initialize new game with fresh layout
+    await initializeGameWithData(null, true);
+    
+    // Hide popup
+    hideNewGamePopup();
+    
+    console.log('New game started successfully');
+  } catch (error) {
+    console.error('Failed to start new game:', error);
+    // Show error message to user
+    showAlert('Failed to start new game. Please try again.');
+  }
+}
+
