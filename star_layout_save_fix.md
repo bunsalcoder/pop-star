@@ -1,54 +1,94 @@
-# Star Layout Save Fix
+# Star Layout Persistence Fix
 
-## Issue Fixed:
-When moving to the next level, the new star layout was not being saved to the API, causing it to revert to the previous level's layout on refresh.
+## Issue Description
 
-## Solution Applied:
+When users play the game and leave only a few stars remaining, then close and reopen the page, the star layout would reset instead of maintaining the saved state. This happened specifically when there were only a small number of stars left (like 1-3 stars).
 
-### 1. **Added `saveNewLevelLayout()` Helper Function**
+## Root Cause
+
+The problem was in the `initializeGameWithData` function in `index.js`. The validation logic for loading saved star layouts was too strict:
+
 ```javascript
-async function saveNewLevelLayout() {
-  try {
-    const newStarLayout = squareSet.map(row => row.map(sq => sq ? sq.num : null));
-    // ... save to API with levelCleared: false for new level
-  } catch (e) {
-    console.error('Failed to save new level star layout:', e);
-  }
-}
+// OLD CODE (problematic)
+if (starLayout && Array.isArray(starLayout) && starLayout.length === boardWidth && starLayout.every(row => Array.isArray(row) && row.length === boardWidth)) {
 ```
 
-### 2. **Updated Level Progression Logic**
-- **`advanceToNextLevel()`**: Now saves the new layout after generating it
-- **onclick handlers**: Both setTimeout calls now save the new layout after level progression
+This validation required that:
+1. The layout must have exactly `boardWidth` (10) rows
+2. Every row must have exactly `boardWidth` (10) columns
 
-### 3. **Key Changes Made:**
+However, when stars are popped and the `move()` function removes empty columns, the layout becomes smaller than 10x10. For example, if only 2-3 stars remain, the layout might become 4x5 or 3x3.
 
-#### Before:
+When the game tried to load these smaller layouts, the validation failed and it fell back to generating a random layout.
+
+## Solution
+
+### 1. Updated Layout Validation
+
+Changed the validation to accept layouts of any size:
+
 ```javascript
-setTimeout(() => initializeGameWithData(null, true), 1000);
+// NEW CODE (fixed)
+if (starLayout && Array.isArray(starLayout) && starLayout.length > 0 && starLayout.every(row => Array.isArray(row) && row.length > 0)) {
 ```
 
-#### After:
+### 2. Dynamic Board Dimensions
+
+Updated the initialization logic to handle layouts of any size:
+
 ```javascript
-setTimeout(async () => {
-  await initializeGameWithData(null, true);
-  await saveNewLevelLayout();
-}, 1000);
+// Initialize the squareSet array to match the loaded layout size
+const layoutRows = starLayout.length;
+const layoutCols = Math.max(...starLayout.map(row => row.length));
+
+// Update boardWidth to match the loaded layout
+boardWidth = Math.max(layoutRows, layoutCols);
+
+// Recalculate squareWidth based on new boardWidth
+squareWidth = boardSize / boardWidth;
 ```
 
-## What This Fixes:
+### 3. Updated Game Logic Functions
 
-1. **Level 2 Layout Persistence**: When you move to Level 2, the new random star layout will be saved
-2. **Refresh Consistency**: After refresh, you'll see the correct Level 2 layout, not Level 1's layout
-3. **API State Sync**: The API will always have the current level's star layout
+Modified the following functions to use actual array dimensions instead of fixed `boardWidth`:
 
-## Expected Behavior Now:
+- `move()` function: Now uses `squareSet.length` and `squareSet[0].length` instead of `boardWidth`
+- `checkLinked()` function: Updated to use `squareSet.length` for row bounds
+- `checkLinkedWithVisited()` function: Updated to use `squareSet.length` for row bounds
 
-1. **Complete Level 1** → Click banner → Move to Level 2
-2. **Level 2 loads** with fresh random star layout
-3. **New layout is saved** to API automatically
-4. **Refresh the page** → Level 2 layout persists correctly
-5. **Target score updates** to Level 2's target
-6. **Current score carries over** from Level 1
+## Testing
 
-The star layout will now persist correctly across refreshes for each level! 
+The fix was tested with a mock layout containing only 2 stars in a 4x5 grid:
+
+```javascript
+const smallLayout = [
+  [null, null, null, null, null],
+  [null, 2, 3, null, null],    // 2 stars in the middle
+  [null, null, null, null, null],
+  [null, null, null, null, null]
+];
+```
+
+The test confirmed that:
+- ✅ Layout validation passes for non-10x10 layouts
+- ✅ Board dimensions are calculated correctly (5x5)
+- ✅ The game can now properly load saved layouts of any size
+
+## Impact
+
+This fix ensures that:
+1. Users can close and reopen the game without losing their progress
+2. The star layout persists correctly regardless of how many stars remain (even just 1-3 stars)
+3. The game handles layouts of any size (not just 10x10)
+4. All game mechanics (popping, moving, linking) work correctly with dynamic layouts
+
+## Files Modified
+
+- `index.js`: Updated layout validation and game logic functions
+
+## Specific Changes Made
+
+1. **Line 133**: Updated validation logic to accept layouts of any size
+2. **Lines 139-143**: Added dynamic board dimension calculation
+3. **Lines 688-720**: Updated `move()` function to use actual array dimensions
+4. **Lines 768 & 798**: Updated linking functions to use `squareSet.length` instead of `boardWidth` 

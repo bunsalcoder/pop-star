@@ -132,10 +132,21 @@ async function initializeGameWithData(starLayout = null, forceNewLevel = false) 
   table.innerHTML = "";
   squareSet = [];
 
-  if (starLayout && Array.isArray(starLayout) && starLayout.length === boardWidth && starLayout.every(row => Array.isArray(row) && row.length === boardWidth)) {
-    for (var i = 0; i < boardWidth; i++) {
+  if (starLayout && Array.isArray(starLayout) && starLayout.length > 0 && starLayout.every(row => Array.isArray(row) && row.length > 0)) {
+    // Initialize the squareSet array to match the loaded layout size
+    const layoutRows = starLayout.length;
+    const layoutCols = Math.max(...starLayout.map(row => row.length));
+    
+    // Update boardWidth to match the loaded layout
+    boardWidth = Math.max(layoutRows, layoutCols);
+    
+    // Recalculate squareWidth based on new boardWidth
+    squareWidth = boardSize / boardWidth;
+    
+    // Initialize squareSet with the layout dimensions
+    for (var i = 0; i < layoutRows; i++) {
       squareSet[i] = new Array();
-      for (var j = 0; j < boardWidth; j++) {
+      for (var j = 0; j < layoutCols; j++) {
         if (starLayout[i] && starLayout[i][j] !== null && starLayout[i][j] !== undefined) {
           var square = createSquare(starLayout[i][j], i, j);
           square.onmouseover = function () {
@@ -676,10 +687,13 @@ function isFinish() {
 
 function move() {
     // First, drop stars down (vertical movement)
-    for (var i = 0; i < boardWidth; i++) {
+    const actualRows = squareSet.length;
+    const actualCols = squareSet[0] ? squareSet[0].length : 0;
+    
+    for (var i = 0; i < actualCols; i++) {
         var pointer = 0;
-        for (var j = 0; j < boardWidth; j++) {
-            if (squareSet[j][i] != null) {
+        for (var j = 0; j < actualRows; j++) {
+            if (squareSet[j] && squareSet[j][i] != null) {
                 if (j != pointer) {
                     squareSet[pointer][i] = squareSet[j][i];
                     squareSet[j][i].row = pointer;
@@ -691,18 +705,20 @@ function move() {
     }
     
     // Then, remove empty columns (horizontal movement)
-    for (var i = squareSet[0].length - 1; i >= 0; i--) {
+    for (var i = actualCols - 1; i >= 0; i--) {
         var isEmptyColumn = true;
-        for (var j = 0; j < boardWidth; j++) {
-            if (squareSet[j][i] != null) {
+        for (var j = 0; j < actualRows; j++) {
+            if (squareSet[j] && squareSet[j][i] != null) {
                 isEmptyColumn = false;
                 break;
             }
         }
         if (isEmptyColumn) {
             // Remove the empty column
-            for (var j = 0; j < boardWidth; j++) {
-                squareSet[j].splice(i, 1);
+            for (var j = 0; j < actualRows; j++) {
+                if (squareSet[j]) {
+                    squareSet[j].splice(i, 1);
+                }
             }
         }
     }
@@ -755,7 +771,7 @@ function checkLinked(square, arr) {
     if (square.col < actualCols - 1 && squareSet[square.row][square.col + 1] && squareSet[square.row][square.col + 1].num == square.num && arr.indexOf(squareSet[square.row][square.col + 1]) == -1) {
         checkLinked(squareSet[square.row][square.col + 1], arr);
     }
-    if (square.row < boardWidth - 1 && squareSet[square.row + 1] && squareSet[square.row + 1][square.col] && squareSet[square.row + 1][square.col].num == square.num && arr.indexOf(squareSet[square.row + 1][square.col]) == -1) {
+    if (square.row < squareSet.length - 1 && squareSet[square.row + 1] && squareSet[square.row + 1][square.col] && squareSet[square.row + 1][square.col].num == square.num && arr.indexOf(squareSet[square.row + 1][square.col]) == -1) {
         checkLinked(squareSet[square.row + 1][square.col], arr);
     }
     if (square.row > 0 && squareSet[square.row - 1] && squareSet[square.row - 1][square.col] && squareSet[square.row - 1][square.col].num == square.num && arr.indexOf(squareSet[square.row - 1][square.col]) == -1) {
@@ -779,7 +795,7 @@ function checkLinkedWithVisited(square, arr, visited) {
     if (square.col < actualCols - 1 && squareSet[square.row][square.col + 1] && squareSet[square.row][square.col + 1].num == square.num && !visited[square.row][square.col + 1]) {
         checkLinkedWithVisited(squareSet[square.row][square.col + 1], arr, visited);
     }
-    if (square.row < boardWidth - 1 && squareSet[square.row + 1] && squareSet[square.row + 1][square.col] && squareSet[square.row + 1][square.col].num == square.num && !visited[square.row + 1][square.col]) {
+    if (square.row < squareSet.length - 1 && squareSet[square.row + 1] && squareSet[square.row + 1][square.col] && squareSet[square.row + 1][square.col].num == square.num && !visited[square.row + 1][square.col]) {
         checkLinkedWithVisited(squareSet[square.row + 1][square.col], arr, visited);
     }
     if (square.row > 0 && squareSet[square.row - 1] && squareSet[square.row - 1][square.col] && squareSet[square.row - 1][square.col].num == square.num && !visited[square.row - 1][square.col]) {
@@ -1056,8 +1072,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 // window.onload is handled by DOMContentLoaded for proper API integration
 
-window.onresize = initializeGameWithData;
-window.onresize = initializeGameWithData;
+// Note: Removed window.onresize = initializeGameWithData to prevent game reset on viewport changes
+// Only adjustPopStarSize is needed for responsive design
 
 // Global function to manually check level completion (can be called from console)
 window.checkLevelCompletion = function() {
