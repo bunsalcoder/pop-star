@@ -71,7 +71,7 @@ export class GameAPI {
         
         // Send the code to your backend for verification
         if (code) {
-          const response = await axios.post("https://mp-test.mos.me/api/games/login/popStar/miniAppLogin", {
+          const response = await apiClient.post("/login/popStar/miniAppLogin", {
             code: code
           });
           
@@ -107,7 +107,7 @@ export class GameAPI {
         const code = await this.waitForMosCode(appKey, 5, 1000);
         
         if (code) {
-          const response = await axios.post("https://mp-test.mos.me/api/games/login/popStar/miniAppLogin", {
+          const response = await apiClient.post("/login/popStar/miniAppLogin", {
             code: code
           });
           
